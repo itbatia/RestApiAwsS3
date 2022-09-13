@@ -1,9 +1,8 @@
 package com.itbatia.app.util.validators;
 
-import com.itbatia.app.model.File;
-import com.itbatia.app.model.Status;
+import com.itbatia.app.model.*;
 import com.itbatia.app.repository.FileRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -13,14 +12,10 @@ import java.util.List;
 import static com.itbatia.app.util.Utility.getFileNameFromLocationInBucket;
 
 @Component
+@RequiredArgsConstructor
 public class FileValidator implements Validator {
 
     private final FileRepository fileRepository;
-
-    @Autowired
-    public FileValidator(FileRepository fileRepository) {
-        this.fileRepository = fileRepository;
-    }
 
     @Override
     public boolean supports(Class<?> clazz) {

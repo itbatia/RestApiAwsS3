@@ -1,129 +1,106 @@
 package com.itbatia.app.service;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.itbatia.app.model.Action;
-import com.itbatia.app.model.File;
-import com.itbatia.app.model.Status;
+import com.itbatia.app.model.*;
 import com.itbatia.app.repository.FileRepository;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class FileServiceTest {
 
-    @Autowired
+    @InjectMocks
     private FileService fileService;
 
-    @MockBean
+    @Mock
     private FileRepository fileRepositoryMock;
-    @MockBean
+    @Mock
     private AmazonS3 s3clientMock;
-    @MockBean
+    @Mock
     private EventService eventServiceMock;
 
-    private Status status;
+    private final static String BUCKET_NAME = "bucketName";
+    private final static String LOCATION_IN_BUCKET = "folder1/folder2/fileName.docx";
+    private final static java.io.File FILE_INPUT = new java.io.File("C:/Users/Desktop/fileName.docx");
     private File expectedFile;
-    private File testFile;
-    private String bucketName;
-    private String locationInBucket;
-    private java.io.File fileInput;
 
+    private File getTestFile() {
+        return File.builder()
+                .bucketName("bucketName")
+                .locationInBucket("folder1/folder2/fileName.docx")
+                .pathToSourceFile("C:/Users/Desktop/fileName.docx")
+                .build();
+    }
 
-    @Autowired
-    @Before
+    private File getExpectedFile() {
+        return File.builder()
+                .bucketName("bucketName")
+                .location("https://bucketName.s3.amazonaws.com/folder1/folder2/fileName.docx")
+                .build();
+    }
+
+    @BeforeEach
     public void setUp() {
-        status = Status.ACTIVE;
-        bucketName = "bucketName";
-        locationInBucket = "folder1/folder2/fileName.docx";
-        fileInput = new java.io.File("C:/Users/Desktop/fileName.docx");
-
-        testFile = new File();
-        testFile.setBucketName("bucketName");
-        testFile.setLocationInBucket("folder1/folder2/fileName.docx");
-        testFile.setPathToSourceFile("C:/Users/Desktop/fileName.docx");
-
-        expectedFile = new File();
-        expectedFile.setLocation("https://bucketName.s3.amazonaws.com/folder1/folder2/fileName.docx");
-        expectedFile.setBucketName("bucketName");
+        expectedFile = getExpectedFile();
     }
 
     @Test
     public void uploadFile() {
-        when(fileRepositoryMock.save(testFile)).thenReturn(expectedFile);
-        File fileActual = fileService.uploadFile(testFile);
+        when(fileRepositoryMock.save(any(File.class))).thenReturn(getExpectedFile());
+        File fileActual = fileService.uploadFile(getTestFile());
 
-        verify(fileRepositoryMock).save(testFile);
-        verify(fileRepositoryMock, times(1)).save(testFile);
-        verify(s3clientMock).putObject(bucketName, locationInBucket, fileInput);
-        verify(s3clientMock, times(1)).putObject(bucketName, locationInBucket, fileInput);
-        verify(eventServiceMock).createEvent(expectedFile, Action.CREATION);
-        assertEquals(expectedFile, fileActual);
-
-        // 1) проверяем, что с методом save() было взаимодействие
-        // 2) проверяем, что метод save() был вызван 1 раз
-        // 3) проверяем, что с методом putObject() было взаимодействие
-        // 4) проверяем, что метод putObject() был вызван 1 раз
-        // 5) проверяем, что с методом createEvent() было взаимодействие
-        // 6) сравниваем ожидаемые и актуальные данные
+        verify(fileRepositoryMock).save(any(File.class));
+        verify(fileRepositoryMock, times(1)).save(any(File.class));
+        verify(s3clientMock).putObject(BUCKET_NAME, LOCATION_IN_BUCKET, FILE_INPUT);
+        verify(s3clientMock, times(1)).putObject(BUCKET_NAME, LOCATION_IN_BUCKET, FILE_INPUT);
+        verify(eventServiceMock).createEvent(any(File.class), any(Action.class));
+        assertEquals(getExpectedFile(), fileActual);
     }
 
     @Test
     public void getAllFiles() {
         fileService.getAllFiles();
 
-        verify(fileRepositoryMock).findAllByStatus(status);
-        verify(fileRepositoryMock, times(1)).findAllByStatus(status);
-
-        // 1) проверяем, что с методом findAllByStatus() было взаимодействие
-        // 2) проверяем, что метод findAllByStatus() был вызван 1 раз
+        verify(fileRepositoryMock).findAllByStatus(Status.ACTIVE);
+        verify(fileRepositoryMock, times(1)).findAllByStatus(Status.ACTIVE);
     }
 
     @Test
     public void getById() {
-        when(fileRepositoryMock.findByIdAndStatus(1L, status)).thenReturn(Optional.of(expectedFile));
+        when(fileRepositoryMock.findByIdAndStatus(1L, Status.ACTIVE)).thenReturn(Optional.of(getExpectedFile()));
         File actualFile = fileService.getById(1L);
 
-        verify(fileRepositoryMock).findByIdAndStatus(1L, status);
-        verify(fileRepositoryMock, never()).findByIdAndStatus(2L, status);
-        assertEquals(expectedFile, actualFile);
-        // 1) проверяем, что с методом findByIdAndStatus() было взаимодействие
-        // 2) проверяем, что метод findByIdAndStatus с параметром "2" не вызывался
-        // 3) сравниваем ожидаемые и актуальные данные
+        verify(fileRepositoryMock).findByIdAndStatus(1L, Status.ACTIVE);
+        verify(fileRepositoryMock, never()).findByIdAndStatus(2L, Status.ACTIVE);
+        assertEquals(getExpectedFile(), actualFile);
     }
 
     @Test
     public void getByBucketName() {
-        fileService.getByBucketName(bucketName);
+        fileService.getByBucketName(BUCKET_NAME);
 
-        verify(fileRepositoryMock).findByBucketNameAndStatus(bucketName, status);
-        verify(fileRepositoryMock, times(1)).findByBucketNameAndStatus(bucketName, status);
-
-        // 1) проверяем, что с методом findByBucketNameAndStatus() было взаимодействие
-        // 2) проверяем, что метод findByBucketNameAndStatus() был вызван 1 раз
+        verify(fileRepositoryMock).findByBucketNameAndStatus(BUCKET_NAME, Status.ACTIVE);
+        verify(fileRepositoryMock, times(1)).findByBucketNameAndStatus(BUCKET_NAME, Status.ACTIVE);
     }
 
     @Test
     public void deleteFile() {
-        when(fileRepositoryMock.findByIdAndStatus(1L, status)).thenReturn(Optional.of(expectedFile));
+        when(fileRepositoryMock.findByIdAndStatus(1L, Status.ACTIVE)).thenReturn(Optional.of(expectedFile));
         fileService.deleteFile(1L);
 
-        verify(s3clientMock, times(1)).deleteObject(bucketName, locationInBucket);
+        verify(s3clientMock, times(1)).deleteObject(BUCKET_NAME, LOCATION_IN_BUCKET);
         verify(eventServiceMock).createEvent(expectedFile, Action.DELETION);
         assertEquals(expectedFile.getStatus(), Status.REMOVED);
-
-        // 1) проверяем, что метод deleteObject() был вызван 1 раз
-        // 2) проверяем, что с методом createEvent() было взаимодействие
-        // 3) проверяем, что статус удаляемого файла изменился на REMOVED
     }
 }

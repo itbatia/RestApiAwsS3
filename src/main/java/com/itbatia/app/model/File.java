@@ -1,12 +1,18 @@
 package com.itbatia.app.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 
 @Data
 @Entity
+@Builder
 @Table(name = "files")
+@AllArgsConstructor
+@NoArgsConstructor
 public class File {
 
     @Id
@@ -16,7 +22,6 @@ public class File {
     @Column(name = "file_name")
     private String fileName;
 
-    //absolute path in S3
     @Column(name = "location")
     private String location;
 
@@ -27,13 +32,8 @@ public class File {
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    //source path of the upload file
     @Transient
     private String pathToSourceFile;
-
-    //destination path for download file
-    @Transient
-    private String pathToDestinationFile;
 
     @Transient
     private String locationInBucket;

@@ -4,7 +4,6 @@ import com.itbatia.app.dto.EventDTO;
 import com.itbatia.app.model.Event;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 

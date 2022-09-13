@@ -1,7 +1,7 @@
 package com.itbatia.app.security;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,16 +15,11 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsServiceImpl userDetailsServiceImpl;
-
-    @Autowired
-    public JwtTokenFilter(JwtTokenProvider jwtTokenProvider, UserDetailsServiceImpl userDetailsServiceImpl) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.userDetailsServiceImpl = userDetailsServiceImpl;
-    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

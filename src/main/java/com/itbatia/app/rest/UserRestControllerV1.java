@@ -1,18 +1,14 @@
 package com.itbatia.app.rest;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.itbatia.app.dto.UserDTO;
-import com.itbatia.app.dto.UserToUpdateDTO;
-import com.itbatia.app.dto.UserToUpdateYourselfDTO;
-import com.itbatia.app.dto.UsersResponse;
+import com.itbatia.app.dto.*;
 import com.itbatia.app.model.User;
 import com.itbatia.app.service.UserService;
+import com.itbatia.app.util.Utility;
 import com.itbatia.app.util.validators.UserValidator;
 import com.itbatia.app.util.exceptions.UserNotUpdatedException;
 import com.itbatia.app.util.mappers.UserMapper;
-import com.itbatia.app.util.exceptions.ErrorResponse;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,27 +19,19 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.util.List;
 
-import static com.itbatia.app.util.Utility.getUserFromContext;
 import static com.itbatia.app.util.exceptions.ErrorsUtil.returnErrorsToClient;
 
 @RestController
 @RequestMapping("/api/v1/users")
 @PreAuthorize("hasRole('ROLE_ADMIN')")
+@RequiredArgsConstructor
 public class UserRestControllerV1 {
 
     private final UserService userService;
     private final UserMapper userMapper;
     private final ModelMapper modelMapper;
     private final UserValidator userValidator;
-
-    @Autowired
-    public UserRestControllerV1(UserService userService, UserMapper userMapper,
-                                ModelMapper modelMapper, UserValidator userValidator) {
-        this.userService = userService;
-        this.userMapper = userMapper;
-        this.modelMapper = modelMapper;
-        this.userValidator = userValidator;
-    }
+    private final Utility utility;
 
     @GetMapping
     public UsersResponse getAll() {
@@ -78,7 +66,7 @@ public class UserRestControllerV1 {
                                             BindingResult bindingResult) {
 
         User userToUpdate = convertToUser(userDTO);
-        userToUpdate.setId(getUserFromContext().getId());
+        userToUpdate.setId(utility.getUserFromContext().getId());
 
         userValidator.validate(userToUpdate, bindingResult);
         if (bindingResult.hasErrors()) {
@@ -94,30 +82,6 @@ public class UserRestControllerV1 {
     public ResponseEntity<?> delete(@PathVariable("id") long id) {
         userService.delete(id);
         return ResponseEntity.ok(HttpStatus.OK);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(UsernameNotFoundException e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(UserNotUpdatedException e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(IllegalArgumentException e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(AmazonS3Exception e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     private <T> User convertToUser(T t) {

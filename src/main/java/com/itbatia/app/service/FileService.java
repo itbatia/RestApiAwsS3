@@ -1,20 +1,15 @@
 package com.itbatia.app.service;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.itbatia.app.model.*;
 import com.itbatia.app.repository.FileRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.FileCopyUtils;
 
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.List;
 
 import static com.itbatia.app.util.Utility.getFileNameFromLocationInBucket;
@@ -22,18 +17,12 @@ import static com.itbatia.app.util.Utility.getFileNameFromLocationInBucket;
 @Slf4j
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class FileService {
 
     private final FileRepository fileRepository;
     private final AmazonS3 s3client;
     private final EventService eventService;
-
-    @Autowired
-    public FileService(FileRepository fileRepository, AmazonS3 s3client, EventService eventService) {
-        this.fileRepository = fileRepository;
-        this.s3client = s3client;
-        this.eventService = eventService;
-    }
 
     public List<File> getAllFiles() {
         List<File> files = fileRepository.findAllByStatus(Status.ACTIVE);
@@ -70,21 +59,6 @@ public class FileService {
         eventService.createEvent(uploadedFile, Action.CREATION);
 
         return uploadedFile;
-    }
-
-    @Transactional
-    public void downloadFile(Long id, String pathToDestinationFile) throws IOException {
-        File fileToDownload = getFileFromDB(id, "downloadFile");
-
-        String bucketName = fileToDownload.getBucketName();
-        String locationInBucket = getLocationInBucket(fileToDownload);
-
-        S3Object s3object = s3client.getObject(bucketName, locationInBucket);
-        S3ObjectInputStream inputStream = s3object.getObjectContent();
-        java.io.File fileIO = new java.io.File(pathToDestinationFile);
-        FileCopyUtils.copy(inputStream, new FileOutputStream(fileIO));
-
-        log.info("IN downloadFile - Downloading file with id {}", id);
     }
 
     @Transactional

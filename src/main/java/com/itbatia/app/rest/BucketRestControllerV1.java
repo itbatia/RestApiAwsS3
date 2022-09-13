@@ -6,15 +6,13 @@ import com.amazonaws.auth.policy.Statement;
 import com.amazonaws.auth.policy.actions.S3Actions;
 import com.amazonaws.auth.policy.resources.S3ObjectResource;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.itbatia.app.dto.BucketDTO;
 import com.itbatia.app.util.exceptions.BucketNotCreationException;
-import com.itbatia.app.util.exceptions.ErrorResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,14 +29,10 @@ import static com.itbatia.app.util.exceptions.ErrorsUtil.returnErrorsToClient;
 @RestController
 @RequestMapping("/api/v1/buckets")
 @PreAuthorize("hasRole('ROLE_ADMIN')")
+@RequiredArgsConstructor
 public class BucketRestControllerV1 {
 
     private final AmazonS3 s3client;
-
-    @Autowired
-    public BucketRestControllerV1(AmazonS3 s3client) {
-        this.s3client = s3client;
-    }
 
     @PostMapping("/create")
     public ResponseEntity<?> createBucket(@RequestBody @Valid BucketDTO bucketDTO, BindingResult bindingResult) {
@@ -50,7 +44,7 @@ public class BucketRestControllerV1 {
 
         if (s3client.doesBucketExistV2(bucketName)) {
             log.warn("IN createBucket - Bucket {} already exists, use a different name", bucketName);
-            throw new BucketNotCreationException("Bucket name '" + bucketName + "' is already exists, use a different name");
+            throw new BucketNotCreationException("Bucket name '" + bucketName + "' is already exists, use a different name!");
         }
         s3client.createBucket(bucketName);
 
@@ -126,24 +120,6 @@ public class BucketRestControllerV1 {
 
         log.info("IN deleteBucketWithResources - bucket '" + bucketName + "' successfully deleted!");
         return ResponseEntity.ok(HttpStatus.OK);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(BucketNotCreationException e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(AmazonS3Exception e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(IllegalArgumentException e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }
 // {

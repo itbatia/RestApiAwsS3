@@ -1,19 +1,15 @@
 package com.itbatia.app.rest;
 
-import com.amazonaws.services.s3.AmazonS3;
 import com.itbatia.app.dto.AuthenticationDTO;
 import com.itbatia.app.dto.RegistrationDTO;
-import com.itbatia.app.model.Role;
-import com.itbatia.app.model.User;
+import com.itbatia.app.model.*;
 import com.itbatia.app.security.JwtTokenProvider;
 import com.itbatia.app.security.UserDetailsImpl;
 import com.itbatia.app.service.UserService;
-import com.itbatia.app.util.exceptions.ErrorResponse;
 import com.itbatia.app.util.validators.UserValidator;
 import com.itbatia.app.util.exceptions.UserNotRegisteredException;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +26,7 @@ import static com.itbatia.app.util.exceptions.ErrorsUtil.returnErrorsToClient;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
 public class AuthenticationRestControllerV1 {
 
     private final JwtTokenProvider jwtTokenProvider;
@@ -37,17 +34,6 @@ public class AuthenticationRestControllerV1 {
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final UserValidator userValidator;
-
-    @Autowired
-    public AuthenticationRestControllerV1(JwtTokenProvider jwtTokenProvider, ModelMapper modelMapper,
-                                          AuthenticationManager authenticationManager, UserService userService,
-                                          UserValidator userValidator, AmazonS3 amazonS3) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.modelMapper = modelMapper;
-        this.authenticationManager = authenticationManager;
-        this.userService = userService;
-        this.userValidator = userValidator;
-    }
 
     @PostMapping("/registration")
     public ResponseEntity<?> performRegistration(@RequestBody @Valid RegistrationDTO registrationDTO,
@@ -81,7 +67,7 @@ public class AuthenticationRestControllerV1 {
 
         Authentication authentication = authenticationManager.authenticate(authInputToken);
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userDetails.getUser();
+        User user = userService.findByUsername(userDetails.getUsername()).get();
 
         String token = jwtTokenProvider.generateToken(request.getUsername(), user.getLastName(), user.getRole().name());
 
@@ -89,24 +75,5 @@ public class AuthenticationRestControllerV1 {
         response.put("username", request.getUsername());
         response.put("jwt-token", token);
         return ResponseEntity.ok(response);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(AuthenticationException e) {
-        ErrorResponse errorResponse = new ErrorResponse(
-                e.getMessage() + ". Incorrect username or password!");
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(UserNotRegisteredException e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler
-    private ResponseEntity<ErrorResponse> handleException(IllegalArgumentException e) {
-        ErrorResponse errorResponse = new ErrorResponse(e.getMessage());
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }
