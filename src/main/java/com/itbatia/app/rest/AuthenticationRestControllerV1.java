@@ -9,6 +9,7 @@ import com.itbatia.app.service.UserService;
 import com.itbatia.app.util.validators.UserValidator;
 import com.itbatia.app.util.exceptions.UserNotRegisteredException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,7 @@ import java.util.Map;
 
 import static com.itbatia.app.util.exceptions.ErrorsUtil.returnErrorsToClient;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
@@ -48,6 +50,7 @@ public class AuthenticationRestControllerV1 {
         userService.register(user);
 
         String token = jwtTokenProvider.generateToken(user.getUsername(), user.getLastName(), Role.ROLE_USER.name());
+        log.info("IN performRegistration - User with username '{}' registered!", user.getUsername());
 
         Map<Object, Object> response = new HashMap<>();
         response.put("username", user.getUsername());
@@ -70,6 +73,7 @@ public class AuthenticationRestControllerV1 {
         User user = userService.findByUsername(userDetails.getUsername()).get();
 
         String token = jwtTokenProvider.generateToken(request.getUsername(), user.getLastName(), user.getRole().name());
+        log.info("IN authenticate - User '{}' {} authenticated!", user.getUsername(), user.getRole());
 
         Map<Object, Object> response = new HashMap<>();
         response.put("username", request.getUsername());
