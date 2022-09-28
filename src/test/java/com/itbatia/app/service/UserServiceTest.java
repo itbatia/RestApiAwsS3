@@ -14,6 +14,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
@@ -28,56 +29,47 @@ public class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoderMock;
 
-    private User getExpectedUser() {
+    private User getUser() {
         return User.builder()
                 .firstName("Ivan")
                 .lastName("Ivanov")
                 .role(Role.ROLE_USER)
-                .password("12345")
+                .password("123456789")
                 .build();
     }
 
-    private User getUserToEnter() {
-        return User.builder()
-                .build();
-    }
-
-    private User getUserToExit() {
-        return User.builder()
-                .id(1L)
-                .build();
-    }
-
-    private User testUser;
+    private User expectedUser;
 
     @BeforeEach
     public void setUp() {
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setPassword("12345");
+        expectedUser = new User();
+        expectedUser.setId(1L);
+        expectedUser.setPassword("123");
     }
 
     @Test
     public void register() {
-        when(userRepositoryMock.save(any(User.class))).thenReturn(any(User.class));
-        when(userRepositoryMock.save(getUserToEnter())).thenReturn(getUserToExit());
+        when(userRepositoryMock.save(any(User.class))).thenReturn(getUser());
         when(passwordEncoderMock.encode(anyString())).thenReturn(anyString());
-        userService.register(testUser);
 
-        verify(userRepositoryMock).save(testUser);
-        verify(userRepositoryMock, times(1)).save(testUser);
-        assertEquals(testUser.getRole(), Role.ROLE_USER);
-        assertNotEquals(testUser.getPassword(), "12345");
+        userService.register(expectedUser);
+
+        verify(userRepositoryMock).save(expectedUser);
+        verify(userRepositoryMock, times(1)).save(expectedUser);
+        assertEquals(expectedUser.getRole(), Role.ROLE_USER);
+        assertNotNull(expectedUser.getPassword());
+        assertNotEquals(expectedUser.getPassword(), "123");
     }
 
     @Test
     public void getById() {
-        when(userRepositoryMock.findById(eq(1L))).thenReturn(Optional.of(getExpectedUser()));
-        User actualUser = userService.getById(1L);
+        when(userRepositoryMock.findById(anyLong())).thenReturn(Optional.of(getUser()));
+
+        userService.getById(1L);
 
         verify(userRepositoryMock).findById(1L);
+        verify(userRepositoryMock, times(1)).findById(1L);
         verify(userRepositoryMock, never()).findById(2L);
-        assertEquals(getExpectedUser(), actualUser);
     }
 
     @Test
@@ -90,35 +82,44 @@ public class UserServiceTest {
 
     @Test
     public void update() {
-        when(userRepositoryMock.findById(eq(1L))).thenReturn(Optional.of(testUser));
-        userService.update(1L, getExpectedUser());
+        when(userRepositoryMock.findById(anyLong())).thenReturn(Optional.of(expectedUser));
+
+        userService.update(1L, getUser());
 
         verify(userRepositoryMock).findById(1L);
-        assertEquals(getExpectedUser().getFirstName(), testUser.getFirstName());
-        assertEquals(getExpectedUser().getLastName(), testUser.getLastName());
-        assertEquals(getExpectedUser().getRole(), testUser.getRole());
+        verify(userRepositoryMock, times(1)).findById(1L);
+        verify(userRepositoryMock, never()).findById(2L);
+        assertEquals(expectedUser.getFirstName(), getUser().getFirstName());
+        assertEquals(expectedUser.getLastName(), getUser().getLastName());
+        assertEquals(expectedUser.getRole(), getUser().getRole());
     }
 
     @Test
     public void updateYourself() {
-        when(userRepositoryMock.findById(testUser.getId())).thenReturn(Optional.of(getExpectedUser()));
-        when(passwordEncoderMock.encode("12345")).thenReturn(anyString());
-        userService.updateYourself(testUser);
+        when(userRepositoryMock.findById(anyLong())).thenReturn(Optional.of(getUser()));
+        when(passwordEncoderMock.encode(anyString())).thenReturn(anyString());
+        when(userRepositoryMock.save(expectedUser)).thenReturn(any(User.class));
 
-        verify(userRepositoryMock).findById(testUser.getId());
-        assertEquals(getExpectedUser().getRole(), testUser.getRole());
-        assertNotNull(testUser.getPassword());
-        assertNotEquals(testUser.getPassword(), "12345");
+        userService.updateYourself(expectedUser);
+
+        verify(userRepositoryMock).findById(expectedUser.getId());
+        assertEquals(expectedUser.getRole(), getUser().getRole());
+        assertNotNull(expectedUser.getPassword());
+        assertNotEquals(expectedUser.getPassword(), "123");
     }
 
     @Test
     public void delete() {
-        when(userRepositoryMock.findById(anyLong())).thenReturn(Optional.of(getExpectedUser()));
+        when(userRepositoryMock.findById(anyLong())).thenReturn(Optional.of(getUser()));
+        doNothing().when(userRepositoryMock).deleteById(anyLong());
+
         userService.delete(1L);
 
         verify(userRepositoryMock).findById(1L);
+        verify(userRepositoryMock, times(1)).findById(1L);
         verify(userRepositoryMock, never()).findById(2L);
         verify(userRepositoryMock).deleteById(1L);
+        verify(userRepositoryMock, times(1)).deleteById(1L);
         verify(userRepositoryMock, never()).deleteById(2L);
     }
 }

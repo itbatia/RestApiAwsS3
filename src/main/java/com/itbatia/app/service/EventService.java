@@ -4,19 +4,22 @@ import com.itbatia.app.model.*;
 import com.itbatia.app.repository.EventRepository;
 import com.itbatia.app.util.Utility;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventService {
 
     private final EventRepository eventRepository;
+    private final UserService userService;
     private final Utility utility;
 
-    public void createEvent(File file, Action action) {
+    public void createEvent(FileEntity file, Action action) {
         Event event = new Event();
         event.setAction(action);
         event.setDate(LocalDateTime.now());
@@ -26,6 +29,7 @@ public class EventService {
     }
 
     public List<Event> getUserEvents(long id) {
+        userService.getUserFromDB(id, "getUserEvents");
         return eventRepository.findAllByUserId(id);
     }
 }

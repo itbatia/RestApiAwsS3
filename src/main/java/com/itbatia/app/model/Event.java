@@ -29,7 +29,7 @@ public class Event {
 
     @OneToOne(optional = false)
     @JoinColumn(name = "file_id")
-    private File file;
+    private FileEntity file;
 
     @Column(name = "user_id")
     private Long userId;

@@ -26,6 +26,8 @@ public class EventServiceTest {
     private EventRepository eventRepositoryMock;
     @Mock
     private Utility utility;
+    @Mock
+    private UserService userServiceMock;
 
     private User getUser() {
         return User.builder()
@@ -43,13 +45,13 @@ public class EventServiceTest {
     }
 
     private LocalDateTime date;
-    private File file;
+    private FileEntity file;
     private Action action;
 
     @BeforeEach
     public void setUp() {
         date = LocalDateTime.now();
-        file = new File();
+        file = new FileEntity();
         action = Action.CREATION;
     }
 
@@ -66,10 +68,11 @@ public class EventServiceTest {
 
     @Test
     public void getUserEvents() {
+        when(userServiceMock.getUserFromDB(anyLong(), anyString())).thenReturn(getUser());
         when(eventRepositoryMock.findAllByUserId(anyLong())).thenReturn(anyList());
-        eventService.getUserEvents(1L);
+
+        eventService.getUserEvents(anyLong());
 
         verify(eventRepositoryMock).findAllByUserId(anyLong());
-        verify(eventRepositoryMock, never()).findAllByUserId(eq(2L));
     }
 }

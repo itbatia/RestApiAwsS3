@@ -1,24 +1,21 @@
 package com.itbatia.app.rest;
 
 import com.itbatia.app.dto.*;
-import com.itbatia.app.model.File;
+import com.itbatia.app.dto.response.FilesResponse;
+import com.itbatia.app.model.FileEntity;
 import com.itbatia.app.service.FileService;
 import com.itbatia.app.util.validators.FileValidator;
-import com.itbatia.app.util.exceptions.FileNotUploadedException;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import javax.validation.Valid;
-import java.io.FileNotFoundException;
 import java.util.*;
-
-import static com.itbatia.app.util.exceptions.ErrorsUtil.returnErrorsToClient;
 
 @Slf4j
 @RestController
@@ -41,32 +38,20 @@ public class FileRestControllerV1 {
     // Получить ссылку на скачивание файла по id:
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_MODERATOR', 'ROLE_ADMIN')")
-    public FileDTO getById(@PathVariable("id") long id) throws FileNotFoundException {
+    public FileDTO getById(@PathVariable("id") long id) {
         return convertToFileDTO(fileService.getById(id));
     }
 
-    // Получить список файлов бакета по bucketName:
-    @GetMapping("/from_bucket")
-    @PreAuthorize("hasAnyRole('ROLE_MODERATOR', 'ROLE_ADMIN')")
-    public FilesResponse getByBucketName(@RequestBody BucketDTO bucketDTO) {
-        String bucketName = bucketDTO.getBucketName();
-        List<FileDTO> files = fileService.getByBucketName(bucketName).stream().map(this::convertToFileDTO).toList();
-        return new FilesResponse(files);
-    }
-
     // Загрузить файл в S3:
+    @SneakyThrows
     @PostMapping
     @PreAuthorize("hasAnyRole('ROLE_MODERATOR', 'ROLE_ADMIN')")
-    public ResponseEntity<?> uploadFileToS3(@RequestBody @Valid FileToUploadDTO fileDTO,
-                                            BindingResult bindingResult) {
-        File file = convertToFile(fileDTO);
+    public ResponseEntity<?> uploadFileToS3(@RequestParam("file") MultipartFile multipartFile){
 
-        fileValidator.validate(file, bindingResult);
-        if(bindingResult.hasErrors()){
-            throw new FileNotUploadedException(returnErrorsToClient(bindingResult));
-        }
+        fileValidator.validate(multipartFile);
 
-        File uploadedFile = fileService.uploadFile(file);
+        String fileName = multipartFile.getOriginalFilename();
+        FileEntity uploadedFile = fileService.uploadFile(fileName, multipartFile.getBytes());
 
         Map<Object, Object> response = new HashMap<>();
         response.put("id", uploadedFile.getId());
@@ -78,16 +63,12 @@ public class FileRestControllerV1 {
     // Удалить файл из S3:
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MODERATOR', 'ROLE_ADMIN')")
-    public ResponseEntity<?> deleteFileFromS3(@PathVariable("id") Long id) throws FileNotFoundException {
+    public ResponseEntity<?> deleteFileFromS3(@PathVariable("id") Long id) {
         fileService.deleteFile(id);
         return ResponseEntity.ok(HttpStatus.OK);
     }
 
-    private FileDTO convertToFileDTO(File file) {
+    private FileDTO convertToFileDTO(FileEntity file) {
         return modelMapper.map(file, FileDTO.class);
-    }
-
-    private File convertToFile(FileToUploadDTO fileDTO) {
-        return modelMapper.map(fileDTO, File.class);
     }
 }

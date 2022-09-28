@@ -1,6 +1,7 @@
 package com.itbatia.app.rest;
 
 import com.itbatia.app.dto.*;
+import com.itbatia.app.dto.response.EventsResponse;
 import com.itbatia.app.service.EventService;
 import com.itbatia.app.util.mappers.EventMapper;
 import lombok.RequiredArgsConstructor;

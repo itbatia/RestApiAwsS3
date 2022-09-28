@@ -61,7 +61,7 @@ public class UserService {
         User user = userRepository.findById(userToUpdate.getId()).get();
 
         userToUpdate.setRole(user.getRole());
-        userToUpdate.setPassword(passwordEncoder.encode(user.getPassword()));
+        userToUpdate.setPassword(passwordEncoder.encode(userToUpdate.getPassword()));
 
         userRepository.save(userToUpdate);
 
@@ -77,7 +77,7 @@ public class UserService {
         log.info("IN delete - User '{}' with id={} successfully deleted!", user.getUsername(), id);
     }
 
-    private User getUserFromDB(Long id, String methodName) {
+    protected User getUserFromDB(Long id, String methodName) {
         User user = userRepository.findById(id).orElse(null);
         if (user == null) {
             log.warn("IN {} - User not found by id={}", methodName, id);

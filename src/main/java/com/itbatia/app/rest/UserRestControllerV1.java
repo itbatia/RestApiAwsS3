@@ -1,6 +1,7 @@
 package com.itbatia.app.rest;
 
 import com.itbatia.app.dto.*;
+import com.itbatia.app.dto.response.UsersResponse;
 import com.itbatia.app.model.User;
 import com.itbatia.app.service.UserService;
 import com.itbatia.app.util.Utility;

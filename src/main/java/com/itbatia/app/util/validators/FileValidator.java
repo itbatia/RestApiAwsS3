@@ -2,35 +2,29 @@ package com.itbatia.app.util.validators;
 
 import com.itbatia.app.model.*;
 import com.itbatia.app.repository.FileRepository;
+import com.itbatia.app.util.exceptions.UserNotUpdatedException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.validation.Errors;
-import org.springframework.validation.Validator;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
-import static com.itbatia.app.util.Utility.getFileNameFromLocationInBucket;
-
 @Component
 @RequiredArgsConstructor
-public class FileValidator implements Validator {
+public class FileValidator {
+
+    @Value("${aws_bucket_name}")
+    private String BUCKET_NAME;
 
     private final FileRepository fileRepository;
 
-    @Override
-    public boolean supports(Class<?> clazz) {
-        return clazz.equals(File.class);
-    }
+    public void validate(MultipartFile multipartFile) {
+        String fileName = multipartFile.getOriginalFilename();
+        List<FileEntity> files = fileRepository.findByBucketNameAndFileNameAndStatus(BUCKET_NAME, fileName, Status.ACTIVE);
 
-    @Override
-    public void validate(Object target, Errors errors) {
-        File file = (File) target;
-        String fileName = getFileNameFromLocationInBucket(file.getLocationInBucket());
-        List<File> files = fileRepository.findByBucketNameAndFileNameAndStatus(file.getBucketName(), fileName, Status.ACTIVE);
-
-        if(!files.isEmpty()){
-            errors.rejectValue("bucketName", "", "В бакете '"
-                    + file.getBucketName() + "' файл с названием '" + fileName + "' уже существует!");
+        if (!files.isEmpty()) {
+            throw new UserNotUpdatedException("Файл с названием '" + fileName + "' уже существует!");
         }
     }
 }

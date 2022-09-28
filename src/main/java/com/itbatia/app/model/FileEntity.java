@@ -13,7 +13,7 @@ import javax.persistence.*;
 @Table(name = "files")
 @AllArgsConstructor
 @NoArgsConstructor
-public class File {
+public class FileEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,10 +31,4 @@ public class File {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private Status status;
-
-    @Transient
-    private String pathToSourceFile;
-
-    @Transient
-    private String locationInBucket;
 }
